@@ -1,0 +1,110 @@
+{
+  "name": "RFP intake \u2192 evaluate \u2192 Slack",
+  "nodes": [
+    {
+      "id": "e5fad21c-cb8b-4603-8fbf-732ecbc07f2a",
+      "name": "RFP upload webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "d0744cd5-348d-4a08-af9b-df5a8de4571e",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rfp-intake",
+        "responseMode": "onReceived",
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      }
+    },
+    {
+      "id": "0f40b930-db14-4723-afb6-fcb2240d2381",
+      "name": "POST /evaluate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.RFP_API_URL }}/evaluate",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "={{ Object.keys($binary)[0] }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 1800000
+        }
+      }
+    },
+    {
+      "id": "9c822dd1-4748-4edc-ae11-665aa6639da9",
+      "name": "Slack: awaiting review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "=New RFP awaiting review: *{{ $json.source_file }}*\nRun `{{ $json.run_id }}` \u00b7 status {{ $json.status }}{{ $json.awaiting_review ? '' : ' (not awaiting review!)' }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      }
+    }
+  ],
+  "connections": {
+    "RFP upload webhook": {
+      "main": [
+        [
+          {
+            "node": "POST /evaluate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /evaluate": {
+      "main": [
+        [
+          {
+            "node": "Slack: awaiting review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "id": "02465783cc9245b9"
+}

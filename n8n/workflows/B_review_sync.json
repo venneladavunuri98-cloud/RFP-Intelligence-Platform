@@ -1,0 +1,104 @@
+{
+  "name": "RFP review finalized \u2192 Slack",
+  "nodes": [
+    {
+      "id": "be0909e6-96d9-4cc6-8baa-d6603486902d",
+      "name": "Review finalized webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "b953d8c5-cff5-43a3-82d0-4a79c0e05160",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rfp-reviewed",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "6c359513-873e-4b5f-a211-84d5082f6321",
+      "name": "Format message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "mode": "manual",
+        "options": {},
+        "assignments": {
+          "assignments": [
+            {
+              "id": "831dbaf7-146e-4cd6-9f89-38c7fd7c8a67",
+              "name": "text",
+              "type": "string",
+              "value": "=RFP review finalized: *{{ $json.body.title || $json.body.run_id }}*\nFinal recommendation: *{{ $json.body.review.final_recommendation }}* (AI: {{ $json.body.review.ai_recommendation }}, score {{ $json.body.score ? $json.body.score.total : 'n/a' }})\nReviewer: {{ $json.body.review.reviewer }} \u00b7 action: {{ $json.body.review.action }}\nReason: {{ $json.body.review.reason || '\u2014' }}\nRun `{{ $json.body.run_id }}`"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "06789866-c34e-4448-bc2a-f0a5f3e1dc56",
+      "name": "Slack: decision",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Review finalized webhook": {
+      "main": [
+        [
+          {
+            "node": "Format message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format message": {
+      "main": [
+        [
+          {
+            "node": "Slack: decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "id": "5ef794a1e86b4371"
+}

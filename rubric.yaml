@@ -1,0 +1,13 @@
+version: 1
+weights:            # sum need not be 100; normalized
+  technical_fit: 35
+  eligibility_fit: 25
+  timeline_feasibility: 15
+  commercial_fit: 10
+  legal_risk: 15
+thresholds: {go: 70, review: 50}   # >=go -> go; >=review -> review; else no_go
+compliance: {gap_penalty: 1.0, partial_penalty: 0.5}
+timeline: {min_days_full_score: 21, min_days_zero_score: 7}
+commercial: {min_value_inr: 5000000, full_score_value_inr: 20000000}
+legal: {penalty_per_flagged_clause: 0.25}
+unknown_score: 0.5  # neutral when data is missing or ungrounded

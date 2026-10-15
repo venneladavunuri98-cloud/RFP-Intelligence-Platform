@@ -1,0 +1,29 @@
+# Local development infrastructure (guide §2.1).
+# Credentials default to the guide's local-only values; override via .env.
+services:
+  db:
+    image: pgvector/pgvector:0.8.7-pg16   # pinned: PostgreSQL 16.15 + pgvector 0.8.7
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rfp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rfp}
+      POSTGRES_DB: ${POSTGRES_DB:-rfp}
+    ports: ["127.0.0.1:5432:5432"]          # host-only, not exposed on the network
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+  n8n:                                      # Stage 3: intake + Slack sync only
+    image: n8nio/n8n:2.43.6               # pinned
+    ports: ["127.0.0.1:5678:5678"]
+    environment:
+      - GENERIC_TIMEZONE=Asia/Kolkata
+      - N8N_LISTEN_ADDRESS=0.0.0.0             # inside the container; the host port stays 127.0.0.1
+      - RFP_API_URL=${RFP_API_URL:-http://host.docker.internal:8000}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-http://host.docker.internal:8999/slack}
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false   # workflows read the two URLs above via $env
+      - N8N_DIAGNOSTICS_ENABLED=false         # no telemetry to n8n.io
+      - N8N_PERSONALIZATION_ENABLED=false
+    extra_hosts: ["host.docker.internal:host-gateway"]   # API runs on the host (guide §3.3)
+    volumes: [n8ndata:/home/node/.n8n]
+volumes: {pgdata: {}, n8ndata: {}}

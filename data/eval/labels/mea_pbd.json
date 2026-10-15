@@ -1,0 +1,29 @@
+{
+  "name": "mea_pbd",
+  "pdf": "data/samples/mea_pbd_rfp.pdf",
+  "label_status": "DRAFT by assistant from the source text; must be verified by a human before results are quoted",
+  "deadline": "2026-02-02",
+  "estimated_value_inr": 7000000,
+  "expected_recommendation": null,
+  "manual_minutes": null,
+  "requirements": [
+    {"text": "Proposals invited from NICSI empanelled agencies for Web Portal / Website Development", "category": "eligibility", "mandatory": true},
+    {"text": "Bidder must be a firm/company/proprietorship registered under Indian Companies Act 1956 or Partnership Act 1932 with GST registration and valid PAN/TAN", "category": "eligibility", "mandatory": true},
+    {"text": "Bidder must have a registered office or branch office in New Delhi", "category": "eligibility", "mandatory": true},
+    {"text": "At least 05 years of experience in web designing, building and maintenance (03 years for MSMEs/Startups/SHGs)", "category": "eligibility", "mandatory": true},
+    {"text": "Average turnover more than Rs.50,00,000 over five years among FYs 2018-19 to 2023-24", "category": "eligibility", "mandatory": true},
+    {"text": "Positive net worth for any of 5 years among FYs 2018-19 to 2023-24", "category": "eligibility", "mandatory": true},
+    {"text": "Undertaking that the agency has not been blacklisted by any government body and no litigation with any government department on IT services", "category": "eligibility", "mandatory": true},
+    {"text": "Completed at least 5 orders for website development during 2018-2023 each not less than Rs. 5,00,000, with not less than 10 employees on payroll", "category": "eligibility", "mandatory": true},
+    {"text": "Agency should hold a valid CMMI Level 5 certificate issued by CMMI Institute", "category": "eligibility", "mandatory": true},
+    {"text": "Bid security (Earnest Money Deposit) of Rs 2,10,000", "category": "commercial", "mandatory": true},
+    {"text": "Sub-contracting, subletting, Joint Venture or Consortium bids not permitted", "category": "legal_risk", "mandatory": true},
+    {"text": "Website availability mandated at 99.99% uptime with 24X7X365 monitoring", "category": "technical", "mandatory": true},
+    {"text": "Web Portal fully compliant with GIGW, WCAG 2.0 and other GOI guidelines", "category": "technical", "mandatory": true},
+    {"text": "Comprehensive Security Audit by a CERT-In empanelled agency before going live", "category": "technical", "mandatory": true},
+    {"text": "Portal hosted in a Data Centre located in India by a MeitY empanelled CSP", "category": "technical", "mandatory": true},
+    {"text": "Total Project time shall be 120 Business days; execution to begin within 15 days of approval", "category": "timeline", "mandatory": true},
+    {"text": "Performance Security of about 5% of the contract value", "category": "commercial", "mandatory": true},
+    {"text": "Penalty for delay of 0.5% of contract value per week, subject to maximum of 5% of Total Contract Value", "category": "legal_risk", "mandatory": true}
+  ]
+}

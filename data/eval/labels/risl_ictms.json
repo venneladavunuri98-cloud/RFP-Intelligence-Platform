@@ -1,0 +1,26 @@
+{
+  "name": "risl_ictms",
+  "pdf": "data/samples/risl_ictms_rfp.pdf",
+  "label_status": "DRAFT by assistant from the source text; must be verified by a human before results are quoted",
+  "deadline": "2023-09-04",
+  "estimated_value_inr": null,
+  "value_note": "No estimated project value is stated in the draft RFP; a correct extraction omits it.",
+  "expected_recommendation": null,
+  "manual_minutes": null,
+  "requirements": [
+    {"text": "Bidder should be a company registered under Indian Companies Act, a partnership firm, an LLP or a registered proprietorship firm", "category": "eligibility", "mandatory": true},
+    {"text": "Bidder should comply with Sub rule 4 under rule 13 of RTPP 2013 (Land Border Policy)", "category": "eligibility", "mandatory": true},
+    {"text": "Annual Average Turnover from IT/ITeS for 2018-19 to 2022-23 should be at least INR 500.00 Crores", "category": "eligibility", "mandatory": true},
+    {"text": "Net worth of the bidder as on 31-03-2023 should be Positive", "category": "eligibility", "mandatory": true},
+    {"text": "Implemented one IT project similar to ICTMS with value not below INR 100.00 Crore, or two projects not below INR 75.00 Crore each, between 01-Apr-2014 and 30-Apr-2023", "category": "eligibility", "mandatory": true},
+    {"text": "Bidder should have valid CMMI level 5 certificate as on last date of bid submission", "category": "eligibility", "mandatory": true},
+    {"text": "At least 1,000+ resources in software development profile on full-time payroll", "category": "eligibility", "mandatory": true},
+    {"text": "Bidder should have registered GST and Income Tax PAN numbers", "category": "eligibility", "mandatory": true},
+    {"text": "Consortium firm should be an ORACLE OEM Partner", "category": "eligibility", "mandatory": true},
+    {"text": "Bidder should not be insolvent, bankrupt, convicted or debarred, and should have no conflict of interest", "category": "eligibility", "mandatory": true},
+    {"text": "Consortium allowed with only two members: a lead bidder and an ORACLE OEM consortium partner", "category": "legal_risk", "mandatory": true},
+    {"text": "Period of contract shall be 5 years (20 quarters), with a Design, Develop and Implementation period of 1.5 years (6 quarters)", "category": "timeline", "mandatory": true},
+    {"text": "Performance security shall be 5% of the amount of supply order", "category": "commercial", "mandatory": true},
+    {"text": "Maximum total penalty in any quarter shall not be more than 10% of the total amount due for the quarter", "category": "legal_risk", "mandatory": true}
+  ]
+}

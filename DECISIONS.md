@@ -1,0 +1,92 @@
+# Design Decisions
+
+One line per decision: what was chosen, and why.
+
+## Stage 1 — Core Engine
+- **Python 3.13 + `uv` venv**: 3.13 is the container's interpreter and all Stage 1 libs ship wheels for it; `uv` gives fast, reproducible installs.
+- **Stage-scoped dependencies**: only Stage 1 libraries are installed now; Postgres/API/UI libs are added in their own stages so each stage's footprint is explicit.
+- **`src/` layout + `pytest.ini` `pythonpath = src`**: tests import `rfp.*` exactly as the app will, without packaging boilerplate.
+- **LLM provider = Google Gemini (free tier) via `langchain-google-genai`**: zero cost for development; accessed only through `init_chat_model`, so the provider can be swapped by changing `LLM_MODEL` without code changes.
+- **Free tier ⇒ public/synthetic RFPs only**: free-tier API content may be used by Google to improve its products (confirm in Google's current Gemini API terms), so no confidential or real-personal-data documents are sent. Redaction still runs first regardless.
+- **Model id is not hardcoded**: free-tier model availability changed during 2026; the id lives in `.env` (`LLM_MODEL`) and is copied from AI Studio.
+- **`import pymupdf` instead of `import fitz`**: `fitz` is deprecated in PyMuPDF 1.28 (same API).
+- **`PDFParseError` base class (`ScannedPDFError` subclasses it)**: the guide only caught scanned PDFs; corrupt or missing files raised PyMuPDF errors that would crash the run. Wrapping them keeps the fail-closed rule — every unreadable PDF reaches human review as an error state. `ScannedPDFError` is unchanged.
+- **Documents opened with `with`**: file handles are closed and never enter graph state.
+- **Scanned-PDF threshold = 50 avg chars/page**: guide default; to be re-tuned on real samples. No OCR in this version (documented limitation).
+- **Injection scan is a documented heuristic**: regex list from the guide; findings go to `risk_flags`, cap the recommendation at "review", and are shown to the reviewer. Known false positives ("you are now required…") are tolerated because a flag only forces human review; paraphrased attacks are missed (tested as known limitations).
+- **Injection scan normalizes text first (NFKC, zero-width removal, whitespace collapse)**: PDF extraction wraps lines, so "ignore all previous\ninstructions" evaded the guide's patterns. Patterns themselves are unchanged.
+- **PII regex fixes (approved)**: the guide's AADHAAR rule `\s?` joined numbers across lines, redacting table columns of years/turnover and tender IDs — violating "normal numbers are not masked". Now: same space/hyphen separator only, first digit 2–9, Verhoeff checksum, year-like groups skipped. PHONE now covers `+91`/`91` prefixes, `98765 43210` and hyphenated forms, and runs before AADHAAR so labels are correct.
+- **Residual PII limitations**: 10-digit amounts starting 6–9 are redacted as PHONE; names/addresses are not caught (NER in Stage 2); the redaction mapping is not stored — the reviewer UI shows the original PDF page instead.
+- **Injection scan runs on raw text, redaction afterwards** (guide order): the scan must see the original text; the LLM only ever sees redacted text.
+- **Extractor model built lazily (`get_extractor()`, cached)**: the guide built the LLM at import time, which made the module unimportable without an API key and untestable; behaviour is otherwise identical.
+- **API exceptions are retried and then fail closed**: with `include_raw=True` LangChain captures schema errors, but API errors (e.g. Gemini free-tier 429) still raise; they are caught per attempt, logged, retried with linear backoff, and routed to the error state.
+- **`<rfp>` delimiters neutralized inside RFP text**: a document containing `</rfp>` could otherwise close the data block early in the prompt.
+- **Telemetry logs every attempt** (including failed ones, with `attempt`/`ok`/`error`), uses `perf_counter` for latency and a closed file handle; prices come from `LLM_PRICES_JSON` (free tier ⇒ cost 0).
+- **No chunking in Stage 1**: current Gemini Flash models have a context far larger than typical RFPs; page-range chunking (guide §1.5) is added only if a sample exceeds the model or free-tier TPM limit.
+- **Citation verifier is Python (RapidFuzz), threshold 95**: cheap, deterministic, cannot hallucinate agreement. It proves a quote exists on the cited page, not that it supports the claim (README limitation).
+- **Verifier: numbers must match exactly**: at threshold 95, "Rs. 500 crore" matched a page saying "Rs. 50 crore". Every digit run in the quote must appear as a whole number on the page; fuzzy tolerance is only for whitespace/typography. Side effect (fails closed): a quote that reformats a number ("100000" vs "1,00,000") is marked ungrounded.
+- **Verifier: quote longer than page cannot fuzzy-match**: `partial_ratio` aligns the shorter string, so a near-empty page ("Section 2") scored 100 against a long invented quote.
+- **Verifier `norm()` maps curly quotes/dashes to ASCII**: LLMs straighten typography; a genuine quote scored 93 without this. Fixed in `norm()` per guide pitfall advice, threshold unchanged.
+- **`verify` deep-copies the extraction** instead of mutating graph state in place; the LLM's own `grounded` values are always overwritten.
+- **Default model `google_genai:gemini-3.8-flash`**: newest stable Flash model that responded on the free-tier key (2026-10-15); `gemini-2.5-flash` also worked and is the fallback. `gemini-3.5-flash` returned 503 at the time.
+- **`data/samples/synthetic_rfp.pdf`**: synthetic 3-page RFP with fake PII, used for the first live extraction check; real public RFPs are added for the end-to-end run and evaluation.
+- **Scorer is pure Python + `rubric.yaml`, no LLM**: same input → same score; weights are reviewable; `today` is injectable for reproducible tests. Output is validated through the `RFPScore` contract.
+- **Requirement without a compliance flag = neutral (`unknown_score`), not "covered"**: the guide's `fit()` gave penalty 0 for a missing flag, so with the Stage 1 compliance stub every technical/eligibility requirement scored 1.0 with no evidence. Identical to the guide when every requirement has a flag.
+- **Deadline must be strict ISO (`dateutil.isoparse`)**: `dtp.parse("05/11/2026")` returns 11 May (US order) for an Indian 5 Nov, and prose deadlines raised `ParserError`, crashing the run. Non-ISO → neutral score with a stated reason.
+- **"Capped at review" reason only when the cap actually applied**: the guide appended it whenever flags existed, even for review/no_go results, which would mislead the reviewer.
+- **Rubric validated on load**: weights must cover exactly the five scored parts, so a typo cannot silently drop a dimension.
+- **Compliance node is a stub in Stage 1** (guide §1.9); pgvector retrieval + LLM judge arrive in Stage 2.
+- **`human_review` holds only the `interrupt()` call** (no side effects): LangGraph re-runs the interrupted node from the top on resume; DB writes/reports belong in `finalize`.
+- **`ingest` catches `PDFParseError`** (not only `ScannedPDFError`): corrupt/missing files also reach review as an error state.
+- **Review validation is one pure function, `review_problems()`**: used by the routing function and echoed into the next interrupt payload (`previous_decision_problems`) so a reviewer sees why a decision was rejected. Stricter than the guide: an override must also give `final_recommendation` in go/review/no_go (the guide's `finalize` would `KeyError` without it), the reviewer name must be non-blank, and non-dict resume values are rejected instead of crashing.
+- **`finalize` records `ai_recommendation`, `final_recommendation` and `decided_at`**: the audit trail keeps both the system's and the human's verdict (matches the Stage 2 `reviews` table).
+- **Error-state runs finalize as `manual_review_required`** regardless of action (guide behaviour): no score exists to approve.
+- **Terminal runner `python -m rfp.run`**: drives the interrupt/resume loop with `input()`; prompts and output are injectable so the flow is tested without a keyboard.
+- **Stdlib `.env` loader in `config.py`** (no new dependency): real environment variables always win, so cloud environment settings override the file.
+- **Public samples fetched via Google Drive**: the cloud environment's network policy blocks `.gov.in` / `sbi.bank.in`; the user downloaded the PDFs and uploaded them to Drive. `mea_pbd_rfp.pdf` (40 pp) and `risl_ictms_rfp.pdf` (118 pp) are public tender documents; RISL is kept for the Stage 2 evaluation set.
+
+## Stage 2 — Database, Compliance, Evaluation
+- **Docker daemon started inside the cloud container** (`dockerd`): lets the guide's `docker-compose.yml` run unchanged. Only `db` is started now; `n8n` is defined but started in Stage 3 (its image is pinned then).
+- **Image pinned to `pgvector/pgvector:0.8.7-pg16`** (PostgreSQL 16.15, pgvector 0.8.7) instead of the floating `pg16` tag, for reproducibility.
+- **Ports bound to 127.0.0.1; credentials overridable via env**: the guide's `rfp/rfp` credentials are local-dev only and are never exposed on the network.
+- **Embeddings: `models/gemini-embedding-001` at 1536 dims**: same provider/key as the LLM (free tier); Gemini supports reduced output dimensionality, so the guide's `vector(1536)` is kept unchanged. Cosine distance (`<=>`) is used, so the reduced-dimension vectors need no normalization.
+- **Tests use a separate `rfp_test` database** and skip (not fail) with a clear message if Postgres is not running, so unit tests still run without Docker.
+- **`data/capabilities.md` is labelled MOCK** (fictional "Nimbus Digital Services"): 20 sections incl. explicit "we do NOT" items, with deliberate partial/gap cases (CMMI 3 not 5, Gurugram not New Delhi, 99.9% not 99.99%) so compliance has something real to detect.
+- **Capability ingest is a full replace in one transaction**: re-running cannot duplicate rows; a failure leaves the old store intact.
+- **Gemini task types**: `RETRIEVAL_DOCUMENT` for capability sections, `RETRIEVAL_QUERY` for requirements; requirements are embedded in one batch call to save free-tier quota.
+- **Shared `llm.invoke_structured()`**: the extractor and compliance judge share one retry/telemetry/fail-closed path (refactored out of the Stage 1 extractor; its tests unchanged).
+- **Compliance judge sees only retrieved passages; the requirement and passages are delimited as data.** "If unsure, answer gap."
+- **Python verifies compliance evidence**: a covered/partial verdict whose `evidence` is not found verbatim (normalized) in the retrieved passages is marked `evidence_grounded: false` and scored neutral, mirroring citation verification. `requirement_id` is always set by Python, never trusted from the LLM.
+- **Retrieved passages (section + cosine distance) are stored on each flag** so the reviewer sees why.
+- **Compliance failures fail closed**: DB/embedding outage or judge failure → no flag for that requirement (scored neutral, listed in `errors`), never "covered".
+- **Unit tests cannot make live API calls** (autouse fixture blocks `chat_model`/`embedder`; `@pytest.mark.live` opts in). Found when the graph tests silently started calling Gemini embeddings through the new compliance node.
+- **Compliance judge is batched (approved)**: free tier allows 20 generate requests/day/model; one call per requirement (15+ per RFP) exhausted it mid-run. One call returns the guide's existing `ComplianceResult(flags=[...])`; each `<item>` carries its own retrieved passages. Python drops ids it never asked about, keeps the first flag per id, reports missing verdicts, and verifies evidence only against that requirement's own passages.
+- **Daily-quota errors are not retried**: "PerDay" quota errors cannot succeed on retry; they are reported immediately (per-minute 429s are still retried).
+- **Evidence check uses "Section: content"** (exactly what the judge saw): genuine quotes that began with the section title were wrongly marked unverified in the first live run.
+- **Embeddings batched ≤90 texts with a 61 s pause**: free-tier embedding quota is 100 *texts* per minute, not calls; 162 requirement texts in one call failed.
+- **Model switched to `gemini-2.5-flash` (approved)** after `gemini-3.8-flash` hit its 20/day free quota.
+- **Extraction prompt now asks for bid-level requirements and to merge related spec lines (approved; no numeric cap)**: on the same MEA RFP, gemini-3.8-flash returned 14 requirements while gemini-2.5-flash returned 192 (65,522 output tokens, just under the 65,536 cap). With the guidance: 119. Granularity remains model-dependent and directly affects legal_risk (per-clause penalty) and precision; the evaluation harness will measure it.
+- **Postgres checkpointer via a pool** (`db.checkpointer()`): `PostgresSaver(ConnectionPool(..., kwargs={autocommit, prepare_threshold=0, row_factory=dict_row}))`, matching what `PostgresSaver.from_conn_string` uses; `setup()` on open.
+- **`RFP_STORAGE` = postgres | local**: one switch for checkpointer + telemetry + audit writes. Unit tests run `local` (MemorySaver, JSONL); DB tests opt in with a fixture against `rfp_test`.
+- **Telemetry never breaks a run**: DB insert failure falls back to JSONL with `db_error` (observed live: dev DB missed a migration; both records survived and were backfilled).
+- **Audit writes fail closed**: `ingest` registers the run before any work; `finalize` writes the `reviews` row (idempotent upsert, since finalize can re-run after a crash) and raises on DB failure, so a run is never "final" without an audit row — it stays resumable at finalize. `human_review` still has no side effects.
+- **`runs.status`**: processing (ingest) → awaiting_review (runner, before prompting) → final (finalize).
+- **Runner resumes by thread id**: `python -m rfp.run --thread-id X` continues a run parked at review after the original process died; it calls `init_db()` first so missing migrations are applied.
+- **audit_llm_calls gained nullable `attempt`, `ok`, `error` (approved schema change)** via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`.
+- **Eval matching = content-word WRatio ≥ 80 + numbers must agree** (guide suggested "e.g. ratio ≥ 80"): on full text, plain ratio scored CMMI-5 vs ISO-27001 at 82 (false match) and a real paraphrase at 79; WRatio matched a short "office in New Delhi" label to unrelated items at 85.5. Removing RFP boilerplate words separated true pairs (89–100) from non-matches (≤65). Validated on a small hand-picked set only.
+- **Eval labels drafted by the assistant and marked DRAFT**; `expected_recommendation` and `manual_minutes` left null so score agreement, time saved and ROI are reported n/a rather than invented.
+- **Eval runs never fake a human approval**: they stop at the review interrupt and are marked `runs.status='eval'` so they stay out of the review queue; results are cached in `eval/results/` (git-ignored) to save quota; an interrupted eval run resumes from its Postgres checkpoint (used for real when the first eval run was killed by a timeout).
+- **Truncated output (`finish_reason == MAX_TOKENS`) is not retried**: the same prompt truncates again.
+- **Granularity left uncapped (user decision)**: precision 9–13% and 3.7–11.3 min/RFP are reported as-is; a requirement cap or a different model are the documented levers.
+
+## Stage 3 — API, UI, Automation
+- **FastAPI with plain `def` handlers and a long-lived Postgres-checkpointed graph** created in the lifespan (guide §3.1). `/evaluate` is synchronous as in the guide; callers (n8n, Streamlit) use long timeouts. An async job queue is the documented scaling step.
+- **Review validated twice**: Pydantic model + 422 at the API (reason, final_recommendation), then `validate_review` in the graph; a run not awaiting review returns 409 (no double decisions).
+- **Uploads hardened**: server-generated UUID filenames, `%PDF-` magic check (415), size cap (413). Page images and reports are only resolved from server state / UUID run ids.
+- **Notifications are best-effort**: a failed n8n call never undoes a recorded decision; the response reports `notification: failed …`.
+- **`GET /telemetry`** (added) feeds the console's telemetry screen; `GET /runs/{id}/report` serves the finalize-time HTML report with a restrictive CSP. Report escapes all RFP-derived text (tested with script/img payloads).
+- **Streamlit navigation via a `_goto` flag applied before the sidebar radio is drawn**: assigning the radio's session key after it was drawn crashed the app on "Open" — found by screenshotting the real app, not by AppTest (now a regression test).
+- **API auto-ingests capabilities on first start** so the stack runs from `docker compose up` + two commands.
+- **n8n 2.43.6 pinned; workflows use HTTP Request (4.5) to a Slack Incoming Webhook** instead of the Slack OAuth node, and a Webhook (2.2) intake trigger instead of the Google Drive trigger (guide-sanctioned alternative): both work without OAuth credentials and were tested end to end. URLs come from container env (`RFP_API_URL`, `SLACK_WEBHOOK_URL`), so the exported JSON carries no secrets or instance IDs.
+- **n8n container**: `N8N_LISTEN_ADDRESS=0.0.0.0` (container has no IPv6), `host.docker.internal:host-gateway` to reach the host API, diagnostics/telemetry disabled.
+- **Local mock Slack (`n8n/mock_slack.py`)** for dry runs: nothing is posted externally until a real webhook URL is configured.

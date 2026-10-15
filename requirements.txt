@@ -1,0 +1,25 @@
+# Stage 1 — Core Engine (pinned after first working install, 2026-10-15, Python 3.13)
+langgraph==1.2.15
+langchain==1.4.6
+langchain-core==1.6.10
+pydantic==2.14.1
+pymupdf==1.28.2
+pyyaml==6.0.3
+rapidfuzz==3.14.6
+python-dateutil==2.9.0.post0
+pytest==9.1.1
+# LLM provider: Google Gemini via LangChain (init_chat_model provider 'google_genai')
+langchain-google-genai==4.4.2
+google-genai==2.31.0
+# Stage 2 — Database, compliance, evaluation
+langgraph-checkpoint-postgres==3.2.0
+psycopg[binary,pool]==3.3.6
+psycopg-pool==3.3.3
+pgvector==0.5.1
+# Stage 3 — API, UI, automation
+fastapi==0.143.1
+uvicorn==0.54.0
+python-multipart==0.0.32
+requests==2.34.2
+streamlit==1.66.0
+httpx==0.28.1  # test client only

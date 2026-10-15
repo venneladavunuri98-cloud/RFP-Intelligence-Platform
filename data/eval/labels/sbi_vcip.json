@@ -1,0 +1,29 @@
+{
+  "name": "sbi_vcip",
+  "pdf": "data/samples/sbi_nit.pdf",
+  "label_status": "DRAFT by assistant from the source text; must be verified by a human before results are quoted",
+  "deadline": "2026-08-21",
+  "estimated_value_inr": null,
+  "value_note": "No estimated contract value is stated in the RFP; a correct extraction omits it.",
+  "expected_recommendation": null,
+  "manual_minutes": null,
+  "requirements": [
+    {"text": "Start-up bidder should be recognized by DPIIT with a Certificate of Recognition as a Start-up", "category": "eligibility", "mandatory": true},
+    {"text": "Start-up entity should not be more than 10 years since the date of incorporation", "category": "eligibility", "mandatory": true},
+    {"text": "Turnover of the start-up should not have been greater than Rs. 100 crores from the year of commencement", "category": "eligibility", "mandatory": true},
+    {"text": "FinTech / Digital Capability Partner should have a minimum net worth of Rs.100 lakh", "category": "eligibility", "mandatory": true},
+    {"text": "FinTech / Digital Capability Partner should have been incorporated in India for at least two years", "category": "eligibility", "mandatory": true},
+    {"text": "Bidder must comply with Public Procurement orders under O.M. No. 6/18/2019-PPD dated 23.07.2020", "category": "eligibility", "mandatory": true},
+    {"text": "Bidder should not be under debarment or blacklist by any Scheduled Commercial Bank, PSU or Government agency", "category": "eligibility", "mandatory": true},
+    {"text": "Consortium bidding, sub-contracting and joint assignments are not allowed", "category": "legal_risk", "mandatory": true},
+    {"text": "Performance Security Bank Guarantee of 5% of the agreement value valid for contract tenure plus three months", "category": "commercial", "mandatory": true},
+    {"text": "Services available with an uptime of 99.99% on a 24 x 7 basis for 365 days in a year", "category": "technical", "mandatory": true},
+    {"text": "All video KYC data shall be stored within Indian jurisdiction, encrypted at rest and in transit", "category": "technical", "mandatory": true},
+    {"text": "Video stream should be end-to-end encrypted and protected against interception", "category": "technical", "mandatory": true},
+    {"text": "The solution shall be ISO 27001 and ISO 27018 certified", "category": "technical", "mandatory": true},
+    {"text": "Closure of all VAPT / Information Security audit observations within the time frame stipulated by the Bank at no additional cost", "category": "technical", "mandatory": true},
+    {"text": "Vendor shall maintain a Source Code Escrow arrangement for proprietary software components", "category": "legal_risk", "mandatory": true},
+    {"text": "Liquidated damages of 0.5% of total Project Cost per week of delay up to a maximum of 5% of total Project Cost", "category": "legal_risk", "mandatory": true},
+    {"text": "Contract to be signed and Bank Guarantee submitted within 30 days from issuance of Purchase Order", "category": "timeline", "mandatory": true}
+  ]
+}
