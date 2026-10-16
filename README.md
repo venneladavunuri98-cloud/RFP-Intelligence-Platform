@@ -7,6 +7,7 @@ A governed, human-in-the-loop, multi-agent system that ingests an RFP, extracts 
 ## Demo
 
 ▶ **Demo video (2:25):**
+
 https://github.com/user-attachments/assets/d83bc269-f13a-453e-b469-f1be5588f78c
 
 | Review queue | Run detail: score, PDF page, verified quotes |
