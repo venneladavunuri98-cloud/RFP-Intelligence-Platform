@@ -4,6 +4,26 @@ A governed, human-in-the-loop, multi-agent system that ingests an RFP, extracts 
 
 > Status: Stages 1–3 implemented and verified locally (core engine; Postgres, compliance, evaluation; API, review console, n8n). Not production-ready — see Limitations.
 
+## Demo
+
+▶ **Demo video (2:25):**
+
+| Review queue | Run detail: score, PDF page, verified quotes |
+|---|---|
+| ![Review queue](docs/screenshots/01_review_queue.png) | ![Run detail](docs/screenshots/02_run_detail.png) |
+
+| Requirement quote + compliance evidence | Override blocked until a reason is written |
+|---|---|
+| ![Quote and compliance](docs/screenshots/03_requirement_quote_compliance.png) | ![Override needs reason](docs/screenshots/04_override_needs_reason.png) |
+
+| Final decision, audited | Telemetry (tokens, latency, cost) |
+|---|---|
+| ![Final override](docs/screenshots/08_final_override_audited.png) | ![Telemetry](docs/screenshots/05_telemetry.png) |
+
+| n8n intake workflow | n8n decision → Slack workflow |
+|---|---|
+| ![n8n intake](docs/screenshots/06_n8n_intake_workflow.png) | ![n8n decision](docs/screenshots/07_n8n_decision_workflow.png) |
+
 ## Stage 1 result on a real public RFP
 `data/samples/mea_pbd_rfp.pdf`: MEA RFP for the Pravasi Bharatiya Divas website (40 pages, public).
 
